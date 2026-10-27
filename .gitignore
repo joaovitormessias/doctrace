@@ -1,0 +1,193 @@
+# =========================================================
+# Dependencies
+# =========================================================
+
+node_modules/
+**/node_modules/
+
+
+# =========================================================
+# Build outputs
+# =========================================================
+
+dist/
+build/
+out/
+.next/
+.vite/
+coverage/
+**/dist/
+**/build/
+**/.vite/
+**/coverage/
+
+
+# =========================================================
+# TypeScript / tooling cache
+# =========================================================
+
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+
+# =========================================================
+# Environment files
+# Nunca commitar credenciais reais, pelo amor do compliance
+# =========================================================
+
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+
+# =========================================================
+# Logs
+# =========================================================
+
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# =========================================================
+# Runtime / temporary files
+# =========================================================
+
+tmp/
+temp/
+.tmp/
+.cache/
+uploads/
+storage/
+*.tmp
+*.temp
+
+
+# =========================================================
+# Docker local data
+# Não ignore Dockerfile nem docker-compose.yml
+# =========================================================
+
+.docker/
+docker-data/
+postgres_data/
+pgdata/
+
+
+# =========================================================
+# n8n local data
+# Mantenha os workflows exportados versionados em n8n/workflows/
+# =========================================================
+
+n8n/.n8n/
+n8n/data/
+n8n/local-files/
+n8n/custom/
+n8n/backup/
+
+!n8n/workflows/
+!n8n/workflows/*.json
+
+
+# =========================================================
+# Database dumps / local backups
+# =========================================================
+
+*.dump
+*.sql.gz
+*.backup
+*.bak
+
+
+# =========================================================
+# Uploaded documents / private documents
+# Se quiser versionar exemplos, coloque em docs/samples/
+# =========================================================
+
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+
+!docs/
+!docs/samples/
+!docs/samples/*.pdf
+!docs/samples/*.md
+
+
+# =========================================================
+# OS files
+# =========================================================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+
+
+# =========================================================
+# Editors / IDEs
+# =========================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Session.vim
+.netrwhist
+
+
+# =========================================================
+# LazyVim / Neovim local files
+# =========================================================
+
+.nvimlog
+.lazy.lua
+
+
+# =========================================================
+# Obsidian, caso o repo esteja dentro de um vault
+# Ignore só se não quiser versionar notas/config do vault
+# =========================================================
+
+.obsidian/
+.trash/
+
+
+# =========================================================
+# Package manager caches
+# =========================================================
+
+.pnpm-store/
+.yarn/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+
+# =========================================================
+# Keep lockfiles
+# NÃO ignore package-lock.json
+# =========================================================
+
+!package-lock.json
+!backend/package-lock.json
+!frontend/package-lock.json

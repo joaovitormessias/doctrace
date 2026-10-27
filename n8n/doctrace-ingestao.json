@@ -1,0 +1,164 @@
+{
+  "name": "DocTrace - Ingestão de documentos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingest-document",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5fd7938b-1718-41b6-ac90-cd8e2f730985",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "84b05c88-5b5f-41d7-8e7c-a1be7295f82a",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nconst webhookItems = $(\"Webhook\").all();\nconst webhookItem = webhookItems[0];\n\nconst uploadedDocumentName =\n  webhookItem?.binary?.file?.fileName ??\n  webhookItem?.json?.fileName ??\n  webhookItem?.json?.filename ??\n  webhookItem?.json?.name ??\n  \"documento.pdf\";\n\nfunction chunkText(text, maxLength = 1200, overlap = 200) {\n  const cleaned = String(text ?? \"\")\n    .replace(/\\s+/g, \" \")\n    .trim();\n\n  const chunks = [];\n\n  let start = 0;\n\n  while (start < cleaned.length) {\n    const end = Math.min(start + maxLength, cleaned.length);\n    const chunk = cleaned.slice(start, end).trim();\n\n    if (chunk.length > 0) {\n      chunks.push(chunk);\n    }\n\n    start += maxLength - overlap;\n  }\n\n  return chunks;\n}\n\nfor (const item of items) {\n  const json = item.json ?? {};\n\n  const text =\n    json.text ??\n    json.data ??\n    json.content ??\n    json.extractedText ??\n    \"\";\n\n  if (!String(text).trim()) {\n    throw new Error(\"PDF sem texto extraivel. Use um PDF com texto selecionavel; OCR nao esta implementado.\");\n  }\n  const chunks = chunkText(text);\n\n  chunks.forEach((content, index) => {\n    output.push({\n      json: {\n        documentName: uploadedDocumentName,\n        pageNumber: null,\n        chunkIndex: index,\n        content,\n      },\n    });\n  });\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "51a4c673-545b-4c44-b498-6009f7a2d035",
+      "name": "Divide chunks"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: \"text-embedding-3-small\", input: $json.content } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "31f2d7f2-d6e8-40d1-80fa-db7c9033f546",
+      "name": "HTTP Request - openai"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst originalItems = $(\"Divide chunks\").all();\n\nreturn items.map((item, index) => {\n  const embeddingArray = item.json.data?.[0]?.embedding;\n\n  if (!embeddingArray) {\n    throw new Error(\"Embedding não encontrado na resposta da OpenAI.\");\n  }\n\n  const originalItem = originalItems[index]?.json;\n\n  if (!originalItem) {\n    throw new Error(`Item original não encontrado no índice ${index}.`);\n  }\n\n  return {\n    json: {\n      document_name:\n        originalItem.documentName ??\n        originalItem.document_name ??\n        \"documento.pdf\",\n\n      page_number:\n        originalItem.pageNumber ??\n        originalItem.page_number ??\n        null,\n\n      content:\n        originalItem.content,\n\n      embedding: `[${embeddingArray.join(\",\")}]`,\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "920dc322-b0b2-4487-a91e-d42431013212",
+      "name": "prepara embedding"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH document AS (\n  INSERT INTO documents (name) VALUES ($1)\n  ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n)\nINSERT INTO document_chunks (document_id, document_name, page_number, content, embedding)\nSELECT id, $1, $2, $3, $4::vector FROM document\nON CONFLICT DO NOTHING;",
+        "options": {
+          "queryReplacement": "={{ [ $json.document_name, $json.page_number, $json.content, $json.embedding ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "5fadcf83-08d1-4717-b37a-7aba31e5fd3c",
+      "name": "Execute a SQL query"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Divide chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Divide chunks": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - openai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - openai": {
+      "main": [
+        [
+          {
+            "node": "prepara embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepara embedding": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
