@@ -31,7 +31,7 @@ export function groundedResponse(
       answer.trim() === NOT_FOUND || !Array.isArray(sourceIds) || sourceIds.length === 0) return fallback;
 
   const byId = new Map(chunks.map((chunk) => [chunk.id, chunk]));
-  // Qualquer referencia desconhecida invalida a resposta inteira.
+  // Reject unknown references; membership proves provenance, not factual entailment.
   if (sourceIds.some((id) => typeof id !== "string" || !byId.has(id))) return fallback;
   const used = [...new Set(sourceIds as string[])].map((id) => byId.get(id)!);
   const sources = [...new Map(used.map((chunk) => [
